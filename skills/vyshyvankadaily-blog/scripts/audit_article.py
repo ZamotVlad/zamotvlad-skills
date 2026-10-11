@@ -407,8 +407,11 @@ def audit_lang(entry, lang, rep, min_words, repo):
                     rep.add(lang, "warn", "Зображення > 100 КБ", f"{src}: {kb:.0f} КБ")
                 if f.suffix.lower() != ".webp":
                     rep.add(lang, "warn", "Не WebP", src)
-    if not entry.get("cover_image_url"):
+    cover = entry.get("cover_image_url") or ""
+    if not cover:
         rep.add(lang, "warn", "Обкладинка", "cover_image_url порожній")
+    elif repo and "/static/" in cover and not (Path(repo) / "static" / cover.split("/static/", 1)[1]).exists():
+        rep.add(lang, "error", "Обкладинка", f"файл не знайдено в репо: {cover}")
     n_img = len(doc.images)
     if n_img < 2:
         rep.add(lang, "error", "Візуал", f"зображень у тексті: {n_img}, потрібно щонайменше 2 з підписом")
