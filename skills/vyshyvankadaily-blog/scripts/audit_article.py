@@ -36,7 +36,7 @@ TRUSTED_HOSTS = (
     "nlu.org.ua", "nbuv.gov.ua", "britannica.com", "forbes.com", "forbes.ua", "bbc.com",
     "bbc.co.uk", "suspilne.media", "ukrinform.ua", "ukrinform.net", "theguardian.com",
     "nytimes.com", "pravda.com.ua", "nv.ua", "radiosvoboda.org", "metmuseum.org",
-    "vam.ac.uk", "ukrainer.net", "fashionweek.ua",
+    "vam.ac.uk", "ukrainer.net", "fashionweek.ua", "museum-digital.org",
 )
 BLOCKED_HOSTS = (
     "facebook.com", "fb.com", "instagram.com", "tiktok.com", "t.me", "telegram.me",
@@ -386,6 +386,8 @@ def audit_lang(entry, lang, rep, min_words, repo):
     for img in doc.images:
         src = img.get("src", "")
         alt = (img.get("alt") or "").strip()
+        if src.startswith(("http://", "https://")):
+            rep.add(lang, "warn", "Зовнішнє зображення", f"скачати й покласти в static/blog/<slug>/ перед публікацією: {file_page(src)}")
         if not alt:
             rep.add(lang, "error", "Зображення без alt", src)
         elif alt.lower() == (data.get("title") or "").strip().lower():
@@ -487,9 +489,15 @@ table.checks td,table.checks th{border-bottom:1px solid #3a332d;padding:6px 8px;
 .summary{font:600 18px system-ui;margin:8px 0}
 article{background:#fbf8f3;color:#1C1815;border-radius:8px;padding:8px 28px 24px;margin:16px 0}
 article a{color:#9b2a20}article table{border-collapse:collapse}article td,article th{border:1px solid #d8cfc4;padding:4px 8px}
-article img{max-width:100%;height:auto}article figcaption{font-size:13px;color:#6b6157}
+article img{max-width:100%;height:auto}.ph{border:2px dashed #c8913a;padding:24px;margin:8px 0;background:#fbf6ec;color:#3a2f25;word-break:break-all}article figcaption{font-size:13px;color:#6b6157}
 nav a{color:var(--fg);margin-right:16px}
 """
+
+
+def file_page(src):
+    """Сторінка файлу на Commons для Special:FilePath, інакше сама адреса."""
+    m = re.search(r"Special:FilePath/([^?\"]+)", src)
+    return f"https://commons.wikimedia.org/wiki/File:{m.group(1)}" if m else src
 
 
 def embed_images(body, repo):
@@ -505,8 +513,34 @@ def embed_images(body, repo):
                 return 'src="data:%s;base64,%s"' % (mime, base64.b64encode(f.read_bytes()).decode())
         return 'src="https://vyshyvankadaily.live%s"' % src
 
+    def placeholder(m):
+        tag = m.group(0)
+        src = re.search(r'src="([^"]+)"', tag).group(1)
+        alt = re.search(r'alt="([^"]*)"', tag)
+        page = file_page(src)
+        return (
+            '<div class="ph"><b>Фото чекає завантаження</b><br>'
+            f'{alt.group(1) if alt else ""}<br><a href="{page}" target="_blank" rel="noopener">{page}</a></div>'
+        )
+
     body = body.replace(' loading="lazy"', "")
+    body = re.sub(r'<img[^>]+src="https?://[^"]+"[^>]*>', placeholder, body)
     return re.sub(r'src="(/static/[^"]+)"', repl, body)
+
+
+def downloads_html(entry):
+    def esc(v):
+        return html.escape(str(v or ""))
+
+    items = entry.get("photos_to_download") or []
+    if not items:
+        return ""
+    rows = "".join(
+        f"<li><a href='{esc(i.get('page'))}' target='_blank' rel='noopener'>{esc(i.get('page'))}</a>"
+        f" - зберегти як <code>{esc(i.get('save_as'))}</code>; {esc(i.get('caption', ''))}</li>"
+        for i in items
+    )
+    return f"<h2 id='photos'>Фото для завантаження</h2><ol>{rows}</ol>"
 
 
 def render(entry, rep, stats, out, repo=None):
@@ -544,6 +578,7 @@ def render(entry, rep, stats, out, repo=None):
 <dt>обкладинка</dt><dd>{esc(entry.get('cover_image_url'))}</dd>{brief_html}
 {('<dt>джерела</dt><dd><ul>'+sources+'</ul></dd>') if sources else ''}
 {('<dt>нотатки</dt><dd>'+esc(entry.get('notes'))+'</dd>') if entry.get('notes') else ''}</dl>
+{downloads_html(entry)}
 <h2 id="checks">Перевірки</h2><table class="checks"><tr><th>Мова</th><th>Рівень</th><th>Перевірка</th><th>Деталі</th></tr>{rows}</table>
 {lang_block('uk')}{lang_block('en')}
 </main></body></html>"""
