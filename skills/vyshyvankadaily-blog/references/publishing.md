@@ -37,7 +37,12 @@
 
 ## HTML тіла статті
 
-- Тільки `<p>`, `<h2>`, `<h3>`, `<ul>/<ol>/<li>`, `<table>` (з `<thead>`), `<blockquote>`, `<strong>`, `<em>`, `<a href>`, `<figure>`.
+- Тільки `<p>`, `<h2>`, `<h3>`, `<ul>/<ol>/<li>`, `<table>` (з `<thead>`), `<blockquote>`, `<strong>`, `<em>`, `<a href>`, `<figure>`, `<aside class="vd-callout">`.
+- Блок «Коротко» (перший елемент тіла; EN - `In short`):
+
+```html
+<aside class="vd-callout"><p><strong>Коротко</strong></p><ul><li>...</li><li>...</li><li>...</li></ul></aside>
+```
 - Зображення:
 
 ```html

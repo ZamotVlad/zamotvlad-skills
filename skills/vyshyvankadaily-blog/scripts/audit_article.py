@@ -299,6 +299,15 @@ def audit_lang(entry, lang, rep, min_words, repo):
     if dup:
         rep.add(lang, "warn", "Однакові H2", ", ".join(dup))
 
+    # блок «Коротко» для довгих статей
+    label = "Коротко" if lang == "uk" else "In short"
+    has_tldr = bool(re.match(r'\s*<aside class="vd-callout"><p><strong>' + label, body))
+    if n_words >= 1500 and not has_tldr:
+        rep.add(lang, "warn", "Коротко", f"{n_words} слів - додайте блок «{label}» на початку (3-5 пунктів)")
+    elif has_tldr:
+        items = re.search(r'<aside class="vd-callout">.*?</aside>', body, re.S).group(0).count("<li>")
+        rep.add(lang, "ok" if 3 <= items <= 5 else "warn", "Коротко", f"{items} пунктів")
+
     # FAQ
     faq_idx = next((i for i, h in enumerate(h2) if any(m in h.lower() for m in FAQ_MARK[lang])), None)
     questions = [q for q in h3 if q.endswith("?")]
