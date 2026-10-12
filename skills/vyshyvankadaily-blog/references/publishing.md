@@ -103,4 +103,4 @@ heroku run "python manage.py load_blog_posts blog_posts.json --dry-run"
 heroku run "python manage.py load_blog_posts blog_posts.json"
 ```
 
-Після: Rich Results Test для UA-адреси, подати на індексацію `/blog/<slug>/` і `/en/blog/<slug>/`, оновити контент-план.
+`load_blog_posts` сам надсилає нові й змінені статті в IndexNow (якщо на Heroku задано `INDEXNOW_KEY`), а `/llms.txt` і `/llms-full.txt` оновлюються з бази автоматично. Після: Rich Results Test для UA-адреси, подати на індексацію `/blog/<slug>/` і `/en/blog/<slug>/` у Google Search Console (і за бажанням у Bing Webmaster Tools - URL Submission), оновити контент-план.
